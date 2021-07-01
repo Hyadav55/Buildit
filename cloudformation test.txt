@@ -1,9 +1,9 @@
 {
   "AWSTemplateFormatVersion" : "2021-07-01",
 
-"Description" : "AWS CloudFormation Sample Template ELBWithLockedDownEC2Instances: Create a load balanced, sample website where the instances are locked down to only accept traffic from the load balancer. This example a load balancer with a simple health check. The web site is available on port 80, however, the instances can be configured to listen on any port (3000 by default)."
+  "Description" : "AWS CloudFormation Sample Template ELBWithLockedDownEC2Instances: Create a load balanced, sample website where the instances are locked down to only accept traffic from the load balancer. This example a load balancer with a simple health check. The web site is available on port 80, however, the instances can be configured to listen on any port (3000 by default).",
 
-    "Parameters" : {
+  "Parameters" : {
     "InstanceType" : {
       "Description" : "WebServer EC2 instance type",
       "Type" : "String",
@@ -77,19 +77,57 @@
               }
             },
             "sources" : {
-              "/var/www/html" : "hello from:app"
-	       #!/bin/bash
-               confFile=app.conf
-               #httpd_conf_file=/etc/apache2/ports.conf. #pi - debian
-               httpd_conf=/etc/httpd/conf/httpd.conf
-               newport=3000
-               # Obtain from file if present:
-               if [ -e $confFile ]; then
-               newport=$(grep server_port $confFile | awk -F= '{print $2}')
-               if [ ! -e ${httpd_conf}.orig ]; then
-               sudo cp -p $httpd_conf ${httpd_conf}.orig
-               fi
-               sudo sed -i 's/Listen 30$/Listen 3000/' $httpd_conf
+              "/var/www/html" : "hello from : app "
+			  Fn::Base64: !Sub |
+			  #httpd_conf_file=/etc/apache2/ports.conf. #pi - debian
+                          httpd_conf=/etc/httpd/conf/httpd.conf
+                          newport=3000
+			  if [ -e $confFile ]; then
+			  echo "checking configuration file..."
+			  newport=$(grep server_port $confFile | awk -F= '{print $2}')
+			  fi 
+			  echo "Switching to port $newport"
+			  if [ ! -e ${httpd_conf}.orig ]; then 
+			  sudo cp -p $httpd_conf ${httpd_conf}.orig
+			  fi
+			  sudo sed -i 's/Listen 30$/Listen 3000/' $httpd_conf
+            },
+            "services" : {
+              "sysvinit" : {  
+                "httpd" : {
+                  "enabled" : "true",
+                  "ensureRunning" : "true"                
+                }
+              }
+            }
+          }
+        }
+		"Ec2Instance" : {
+      "Type" : "AWS::EC2::Instance",
+      "Metadata" : {
+        "AWS::CloudFormation::Init" : {
+          "config" : {
+            "packages" : {
+              "yum" : {
+                "httpd"     : [],
+                "php"       : []
+              }
+            },
+            "sources" : {
+              "/var/www/html" : "hello from : DB "
+			  Fn::Base64: !Sub |
+			  #httpd_conf_file=/etc/apache2/ports.conf. #pi - debian
+                          httpd_conf=/etc/httpd/conf/httpd.conf
+                          newport=3000
+			  if [ -e $confFile ]; then
+			  echo "checking configuration file..."
+			  newport=$(grep server_port $confFile | awk -F= '{print $2}')
+			  fi 
+			  echo "Switching to port $newport"
+			  if [ ! -e ${httpd_conf}.orig ]; then 
+			  sudo cp -p $httpd_conf ${httpd_conf}.orig
+			  fi
+			  sudo sed -i 's/Listen 30$/Listen 3000/' $httpd_conf
             },
             "services" : {
               "sysvinit" : {  
@@ -133,30 +171,6 @@
       }
     },
 
-  "Resources" : {
-    "WebServerGroup" : {
-      "Type" : "AWS::AutoScaling::AutoScalingGroup",
-      "Properties" : {
-        "AvailabilityZones" : { "Fn::GetAZs" : "" },
-        "LaunchConfigurationName" : { "Ref" : "LaunchConfig" },
-        "MinSize" : "2",
-        "MaxSize" : "2",
-        "LoadBalancerNames" : [ { "Ref" : "ElasticLoadBalancer" } ]
-      }
-    },
-
-    "LaunchConfig" : {
-      "Type" : "AWS::AutoScaling::LaunchConfiguration",
-      "Properties" : {
-        "ImageId" : { "Fn::FindInMap" : [ "AWSRegionArch2AMI", { "Ref" : "AWS::Region" },
-                                          { "Fn::FindInMap" : [ "AWSInstanceType2Arch", { "Ref" : "InstanceType" },
-                                          "Arch" ] } ] },
-        "UserData" : { "Fn::Base64" : { "Ref" : "WebServerPort" }},
-        "SecurityGroups" : [ { "Ref" : "InstanceSecurityGroup" } ],
-        "InstanceType" : { "Ref" : "InstanceType" }
-      }
-    },
-
     "ElasticLoadBalancer" : {
       "Type" : "AWS::ElasticLoadBalancing::LoadBalancer",
       "Properties" : {
@@ -184,8 +198,8 @@
           "IpProtocol" : "tcp",
           "FromPort" : { "Ref" : "WebServerPort" },
           "ToPort" : { "Ref" : "WebServerPort" },
-          "SourceSecurityGroupOwnerId" : {"Fn::GetAtt" : ["ElasticLoadBalancer", "SourceSecurityGroup.OwnerAlias"]},
-          "SourceSecurityGroupName" : {"Fn::GetAtt" : ["ElasticLoadBalancer", "SourceSecurityGroup.GroupName"]}
+          "SourceSecurityGroupOwnerId" : {"Fn::GetAtt" : ["ElasticLoadBalancer",            "SourceSecurityGroup.OwnerAlias"]},
+          "SourceSecurityGroupName" : {"Fn::GetAtt" : ["ElasticLoadBalancer",           "SourceSecurityGroup.GroupName"]}
         } ]
       }
     }
