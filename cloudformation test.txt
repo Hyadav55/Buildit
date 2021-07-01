@@ -1,7 +1,7 @@
 {
-  "AWSTemplateFormatVersion" : "2021-06-28",
+  "AWSTemplateFormatVersion" : "2021-07-01",
 
-"Description" : "AWS CloudFormation Sample Template ELBWithLockedDownEC2Instances: Create a load balanced, Auto Scaled sample website where the instances are locked down to only accept traffic from the load balancer. This example creates an Auto Scaling group behind a load balancer with a simple health check. The web site is available on port 80, however, the instances can be configured to listen on any port (8888 by default). **WARNING** This template creates one or more Amazon EC2 instances and an Elastic Load Balancer. You will be billed for the AWS resources used if you create a stack from this template."
+"Description" : "AWS CloudFormation Sample Template ELBWithLockedDownEC2Instances: Create a load balanced, sample website where the instances are locked down to only accept traffic from the load balancer. This example a load balancer with a simple health check. The web site is available on port 80, however, the instances can be configured to listen on any port (3000 by default)."
 
     "Parameters" : {
     "InstanceType" : {
@@ -77,7 +77,19 @@
               }
             },
             "sources" : {
-              "/var/www/html" : "https://s3.amazonaws.com/cloudformation-examples/CloudFormationGettingStarted.tar.gz"
+              "/var/www/html" : "hello from:app"
+	       #!/bin/bash
+               confFile=app.conf
+               #httpd_conf_file=/etc/apache2/ports.conf. #pi - debian
+               httpd_conf=/etc/httpd/conf/httpd.conf
+               newport=3000
+               # Obtain from file if present:
+               if [ -e $confFile ]; then
+               newport=$(grep server_port $confFile | awk -F= '{print $2}')
+               if [ ! -e ${httpd_conf}.orig ]; then
+               sudo cp -p $httpd_conf ${httpd_conf}.orig
+               fi
+               sudo sed -i 's/Listen 30$/Listen 3000/' $httpd_conf
             },
             "services" : {
               "sysvinit" : {  
